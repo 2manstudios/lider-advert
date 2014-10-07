@@ -80,15 +80,15 @@ foreach($postData AS $k => $post) {
 
 
 $links = array(
-    '0'=>'http://fn.ua/user/index.php',
-    '1'=>'http://fn.ua/user/',
+    'login'=>'http://fn.ua/user/index.php',
+    'profile'=>'http://fn.ua/user/',
     '2'=>'http://fn.ua/add_edit_db2.php',
     '3'=>'http://fn.ua/upload_photo.php',
     '4'=>'http://fn.ua/newad/ad.php',
     '5'=>'http://fn.ua'
 );
 
-$post_login = array(
+$postLogin = array(
     'uemail'=>_SITE_LOGIN_,
     'upass'=>_SITE_PASS_,
     'go_auth'=>'Войти'
@@ -113,7 +113,7 @@ if(!empty($postData)) {
     $ch = curl_init();
 
     // login
-    curl_setopt($ch, CURLOPT_URL,$links[0]);
+    curl_setopt($ch, CURLOPT_URL,$links['login']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // возвращаем результаты вместо вывода
     curl_setopt($ch, CURLOPT_NOBODY, 1);
     curl_setopt($ch, CURLOPT_HEADER, 1);
@@ -126,6 +126,11 @@ if(!empty($postData)) {
     curl_setopt($ch, CURLOPT_COOKIEJAR, ROOT_DIR."/tmp/fn_cookies.txt");
     curl_setopt($ch, CURLOPT_COOKIEFILE, ROOT_DIR."/tmp/fn_cookies.txt");
 
+    if(is_array($postLogin)){       
+          curl_setopt($ch, CURLOPT_POST, 1);
+          curl_setopt($ch, CURLOPT_POSTFIELDS, $postLogin);
+    }
+    
     $otvet = curl_exec($ch);
 
     if ($otvet === FALSE) {
@@ -137,7 +142,7 @@ if(!empty($postData)) {
 
     curl_setopt($ch, CURLOPT_NOBODY, 0);
     curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_URL, $links[1]);
+    curl_setopt($ch, CURLOPT_URL, $links['profile']);
     $otvet = curl_exec($ch);
 
     if ($otvet === FALSE) {

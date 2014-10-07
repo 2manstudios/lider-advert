@@ -1,49 +1,41 @@
 <?php
-
-$id = 7;
+/*
+$id = 9;
 $postData = getAdverts($id);
 
 if(!$postData) { echo 'empty!'; exit; }
 
+/*
 foreach($postData AS $k => $post) {
-    
+
     if(is_array($post) && !empty($post)) {
-        $post['agreement'] = '1';
-        $post['name'] = '@'.ROOT_DIR.'/images/test.jpg';
-        $post['characteristic'][443] = '442';
         $postData[$k] = $post;
     }
     
 }
+*/
 
 $links = array(
-    'login'=>'http://dom.ria.com/?target=login',
-    'profile'=>'http://dom.ria.com/ru/mypage/',
-    '2'=>'http://dom.ria.com/realty_add.html',
-    '3'=>'http://dom.ria.com/uploader',
-    '4'=>'http://dom.ria.com/ru/default/realty/addsuccess/?id='
+    'login'=>'http://mirkvartir.ua/users/login',
+    'profile'=>'http://mirkvartir.ua/offers/editlist/',
 );
 
 $postLogin = array(
-    'email'=>_SITE_LOGIN_,
-    'password'=>_SITE_PASS_,
-    'remember_me'=>'0',
-    'remember_me'=>'1',
-    'SignIn'=>'Вход',
-    'action'=>'enter',
-    'from_url'=>''
+    'user_login'=>_SITE_LOGIN_,
+    'user_password'=>_SITE_PASS_,
+    'user_remember'=>'on'
 );
 
-if(!empty($postData)) {
+//if(!empty($postData)) {
+if(true) {
     
     $browser = array(
        "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36",
        "Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4,uk;q=0.2",
        "Connection: keep-alive",
        "Content-Type: application/x-www-form-urlencoded",
-       "Host: dom.ria.com",
-       "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-       "Origin: http://dom.ria.com"
+       "Host: mirkvartir.ua",
+       "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
    );
     //"Accept"=>'image/webp,*/*;q=0.8'
     $ch = curl_init();
@@ -59,8 +51,8 @@ if(!empty($postData)) {
     curl_setopt($ch, CURLOPT_MAXREDIRS, 10); // stop after 10 redirects
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
     curl_setopt($ch, CURLOPT_USERAGENT, $browser );
-    curl_setopt($ch, CURLOPT_COOKIEJAR, ROOT_DIR."/tmp/domria_cookies.txt");
-    curl_setopt($ch, CURLOPT_COOKIEFILE, ROOT_DIR."/tmp/domria_cookies.txt");
+    curl_setopt($ch, CURLOPT_COOKIEJAR, ROOT_DIR."/tmp/mirkvartir_cookies.txt");
+    curl_setopt($ch, CURLOPT_COOKIEFILE, ROOT_DIR."/tmp/mirkvartir_cookies.txt");
 
     if(is_array($postLogin)){       
           curl_setopt($ch, CURLOPT_POST, 1);
@@ -71,9 +63,9 @@ if(!empty($postData)) {
 
     if ($otvet === FALSE) {
         echo "cURL Error: " . curl_error($ch);
-        
+        exit;
     }
-
+  
     // rest request
 
     curl_setopt($ch, CURLOPT_POST, 0);
@@ -82,9 +74,9 @@ if(!empty($postData)) {
 
     if ($otvet === FALSE) {
         echo "cURL Error: " . curl_error($ch);
-        return false;
+        exit;
     }
-   
+
     echo $otvet; exit;
     
     // advert publication
