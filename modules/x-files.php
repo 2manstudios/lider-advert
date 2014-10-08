@@ -33,12 +33,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
          */
         
         
-        $pid = clearData($_POST['pid'], 'i');
-        $oid = clearData($_POST['oid'], 'i');
+        $pid = clearData($_POST['pid'], 'i'); // айди с таблицы парамсвалюе
+        $oid = clearData($_POST['oid'], 'i'); // айди таблицы наших переменных
+        $cpid = clearData($_POST['cpid'], 'i'); // тоже что и выше
+        $parentId = clearData($_POST['parentId'], 'i'); // айди родительской записи таблицы парамсвалюэ
 
+        //pre($_POST);exit;
+        
         $table = array_shift(explode("_", $db->getValue("SELECT `var` FROM ourParams WHERE id = $oid")));
         
-        if(_TYPE_ == 'auto' && $_POST['data']) {
+        if($_POST['data']) {
             
                 if(stripos($_POST['data'], "<select") !== FALSE) {
                     $_POST['data'] = cut_str($_POST['data'], ">", "</select>");
@@ -52,7 +56,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $t[1] = trim(cut_str($v, 'value="', '"'));
 
                         if(stripos($t[0], " ") !== FALSE) {
-                            $t[2] = (stripos($t[0], ".") !== FALSE) ? array_pop(explode(" ", $t[0])) : array_shift(explode(" ", $t[0]));
+                            
+                            if(stripos($t[0], ".") !== FALSE) {
+                                if(stripos($t[0], ".") <= stripos($t[0], " ")) {
+                                    $t[2] = array_pop(explode(" ", $t[0]));
+                                } else {
+                                    $t[2] = array_shift(explode(" ", $t[0]));
+                                }
+                            } else {
+                                $t[2] = array_shift(explode(" ", $t[0]));
+                            }
+                     
                         } else {
                             $t[2] = $t[0];
                         }
@@ -75,18 +89,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $sql = " AND microDistrict_id = {$params['microDistrict']}";
                         }            
                         
-                        $query = "SELECT id FROM `$table` WHERE `name` LIKE '{$t[2]}%' $sql ";
-                       
+                        $query = "SELECT id FROM `$table` WHERE `name` LIKE '{$t[2]}%' $sql ";     
                         $tid = $db->getValue($query);
                         
                         if($tid) { 
                             
-                            $vid = $db->getValue("SELECT id FROM siteParamsValue WHERE tableValue_id = $tid AND siteParam_id = $pid ");
+                            $vid = $db->getValue("SELECT id FROM siteParamsValue WHERE tableValue_id = $tid AND siteParam_id = $pid AND parent_id = $parentId ");
                             
                             if(!$vid) {
-                                $db->query("INSERT INTO siteParamsValue SET tableValue_id = $tid, siteParam_id = $pid, `value` = '{$t[1]}', `name` = '{$t[0]}' ");
+                                $db->query("INSERT INTO siteParamsValue SET parent_id = $parentId, tableValue_id = $tid, siteParam_id = $pid, `value` = '{$t[1]}', `name` = '{$t[0]}' ");
                             } elseif($vid) {
-                                $db->query("UPDATE siteParamsValue SET `value` = '{$t[1]}', `name` = '{$t[0]}' WHERE id = $vid ");
+                                $db->query("UPDATE siteParamsValue SET parent_id = $parentId, `value` = '{$t[1]}', `name` = '{$t[0]}' WHERE id = $vid ");
                             }
      
                         }
@@ -109,10 +122,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $t[1] = clearData($v[0], 'ss'); 
                     }          
 
-                    if($v[3] == 'add' && $t[0] && $t[1] != '') {                    
-                        $db->query("INSERT INTO siteParamsValue SET tableValue_id = {$v[1]}, siteParam_id = $pid, `value` = '{$t[1]}', `name` = '{$t[0]}' ");
-                    } elseif($v[3] == 'edit' && $v[2] && $v[0] && !empty($t)) {
-                        $db->query("UPDATE siteParamsValue SET siteParam_id = $pid, `value` = '{$t[1]}', `name` = '{$t[0]}' WHERE id = {$v[2]} ");
+                    if($v[3] == 'add' && $t[0] && $t[1] != '' && $v[0] && $v[0] != '-') {                    
+                        $db->query("INSERT INTO siteParamsValue SET parent_id = $parentId, tableValue_id = {$v[1]}, siteParam_id = $pid, `value` = '{$t[1]}', `name` = '{$t[0]}' ");
+                    } elseif($v[3] == 'edit' && $v[2] && $v[0] && $v[0] != '-' && !empty($t)) {
+                        $db->query("UPDATE siteParamsValue SET parent_id = $parentId, siteParam_id = $pid, `value` = '{$t[1]}', `name` = '{$t[0]}' WHERE id = {$v[2]} ");
                     } elseif($v[3] == 'edit' && $v[2] && $v[0] == '-') {
                         $db->query("UPDATE siteParamsValue SET `value` = '', `name` = '' WHERE id = {$v[2]} ");
                     }
@@ -209,12 +222,21 @@ switch (_WHAT_) {
         break;
     case 'data_link':
         
-            $params['pid'] = clearData($_GET['pid'], 'i');                      
-        
-            if($params['pid']) {
+            $pid = $params['pid'] = clearData($_GET['pid'], 'i');
+            $params['site_id'] = $site_id = $db->getValue("SELECT site_id FROM siteParams WHERE id = $pid ");
+            $params['parentId'] = clearData($_POST['parentId'], 'i');
+            
+            if($_POST['createDataSets']) {
+                $pid = $params['cpid'] = clearData($_POST['cpid'], 'i');                                      
+                $params['pid'] = $pid = $db->getValue("SELECT id FROM siteParams WHERE site_id = $site_id AND our_id = $pid ");
+                $params['labelParent'] = array_shift(explode("|", $_POST['parentName']));
+                $params['parentId'] = clearData(array_pop(explode("|", $_POST['parentName'])), 'i');
+            }
+            
+            if($pid) {
                 $query = "SELECT DISTINCT s.var AS svar, s.our_id, o.var AS ovar, o.label "
                         . "FROM siteParams AS s "
-                        . "INNER JOIN ourParams AS o ON s.our_id = o.id AND s.id = {$params['pid']} ";
+                        . "INNER JOIN ourParams AS o ON s.our_id = o.id AND s.id = $pid ";
                 $params['data'] = $db->get_row($db->query($query));
                 
                 if(_TYPE_ == 'auto' && $params['data']['our_id']) { 
@@ -240,14 +262,25 @@ switch (_WHAT_) {
                     $sql2 = " LIMIT 0, 50 ";
                 }
                 
-               
-                $query = "SELECT DISTINCT t.id, t.name, s.name AS vname, s.id AS vid "
+                if(!$params['cpid']) {
+                    $query = "SELECT id, `label` FROM ourParams WHERE type1 = 1";
+                    $params['datasets'] = $db->get_all_rows($query);
+                }
+                
+                $queryData = "SELECT DISTINCT s.name AS vname, s.id AS sid, (SELECT name FROM siteParamsValue WHERE id = s.parent_id) AS parentName "
+                        . "FROM siteParamsValue AS s WHERE s.id IN (SELECT DISTINCT parent_id FROM siteParamsValue WHERE siteParam_id = $pid AND parent_id > 0)";    
+                $params['loadDatasets'] = $db->get_all_rows($queryData);
+                
+                //pre($params['loadDatasets']); exit;
+                
+                $query = "SELECT DISTINCT t.id, t.name, s.name AS vname, s.id AS sid, s.value "
                         . "FROM ".array_shift(explode("_", $params['data']['ovar']))." AS t "                        
-                        . "LEFT JOIN siteParamsValue AS s ON t.id = s.tableValue_id AND s.siteParam_id = {$params['pid']} "
+                        . "LEFT JOIN siteParamsValue AS s ON t.id = s.tableValue_id AND s.siteParam_id = $pid AND parent_id = {$params['parentId']} "
                         . " $sql "
                         . "ORDER BY t.name ASC $sql2 ";
    
                 $params['data']['data'] = $db->get_all_rows($query);
+                
             }
             
             $query = "SELECT id, `name` FROM region WHERE country_id = 1  ORDER BY `name`";

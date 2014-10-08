@@ -6,7 +6,7 @@ $id = 2;
 $postData = getAdverts($id);
 
 if(!$postData) { echo 'empty!'; exit; }
-
+pre($postData); exit;
 foreach($postData AS $k => $post) {
          
     if(is_array($post) && !empty($post)) {
@@ -23,7 +23,8 @@ foreach($postData AS $k => $post) {
                 $post['apricetype'] = 3;
             }
         }
-      /*
+        
+      
         foreach($data AS $kk => $post1) {                        
             if(!$post['parent_id'][0]) {
                 $post['parent_id'][0] = $db->getValue("SELECT `value` FROM siteParamsValue WHERE `name` = '$kk' AND tableValue_id = $post1 ");
@@ -58,11 +59,13 @@ foreach($postData AS $k => $post) {
                 }
             }                        
         }
-        */
+        
+        
         unset($post['new_build']);
         unset($post['build_type']);
         unset($post['flr']);
         unset($post['flrs']);
+        
         $post['apricecur'] = 1;
         $post['apricetype'] = 3;
         $post['acomtype'] = 1;
@@ -78,14 +81,14 @@ foreach($postData AS $k => $post) {
     }
 }
 
+pre($postData); exit;
 
 $links = array(
     'login'=>'http://fn.ua/user/index.php',
     'profile'=>'http://fn.ua/user/',
-    '2'=>'http://fn.ua/add_edit_db2.php',
-    '3'=>'http://fn.ua/upload_photo.php',
-    '4'=>'http://fn.ua/newad/ad.php',
-    '5'=>'http://fn.ua'
+    'postAdvert'=>'http://fn.ua/add_edit_db2.php',
+    'imageUpload'=>'http://fn.ua/upload_photo.php',
+    'postSuccess'=>'http://fn.ua/newad/ad.php',    
 );
 
 $postLogin = array(
@@ -97,7 +100,7 @@ $postLogin = array(
 $post_photo = array(
     'MAX_FILE_SIZE'=>'4000000',
     'ad_id'=>'',
-    'image'=>'@'.ROOT_DIR.'/images/test.jpg',
+    'image'=>'',
     'need_id'=>'1'
 );
     
@@ -139,7 +142,6 @@ if(!empty($postData)) {
     }
     
     // rest request
-
     curl_setopt($ch, CURLOPT_NOBODY, 0);
     curl_setopt($ch, CURLOPT_POST, 0);
     curl_setopt($ch, CURLOPT_URL, $links['profile']);
@@ -150,9 +152,85 @@ if(!empty($postData)) {
         exit;
     }    
    
-    echo $otvet; exit;
+    // advert publication
+    
+    foreach($postData AS $k => $v) {
+
+        if(stripos($otvet, _SITE_LOGIN_) === FALSE) {
+            echo "not login<br>"; continue;
+        }
+                        
+        // post advert
+        if(!empty($v)) {
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $v);
+        } 
+
+        curl_setopt($ch, CURLOPT_URL, $links['postAdvert']);
+        $otvet = curl_exec($ch);
+
+        if ($otvet === FALSE) {
+            echo "cURL Error: " . curl_error($ch);
+            continue;
+        }
+              
+        // если был редирект
+        $location = checkRedirect($otvet); 
+
+        if($location) {
+    
+            $id = trim(cut_str($location, "ad_id=", "&"));  
+            $post_photo['ad_id'] = $id;
+            
+            #1 - грузим фото
+            if(!empty($v['image'])) {
+                
+                foreach($v['image'] AS $ki => $image) {                
+                    if($post_photo['need_id']) {   
+                        $post_photo["photo_$id"] = $image;                        
+                    }
+
+                    curl_setopt($ch, CURLOPT_POST, 1);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_photo);
+                    curl_setopt($ch, CURLOPT_URL, $links['imageUpload']);
+                    $otvet = curl_exec($ch);
+
+                    if ($otvet === FALSE) {
+                        echo "cURL Error: " . curl_error($ch);
+                        return false;
+                    }
+                }
+                
+            }
+
+            # 2 - success advert
+            curl_setopt($ch, CURLOPT_POST, 0);
+            curl_setopt($ch, CURLOPT_URL, $links['postSuccess']."?ad_id=$id" );
+
+            $otvet = curl_exec($ch);
+
+             if ($otvet === FALSE) {
+                 echo "cURL Error: " . curl_error($ch);
+                 return false;
+             }   
+
+        }        
+        
+        if(!is_numeric($id)) {
+            echo "not publication<br>"; continue;
+        }        
+        
+        // проверка и занос в бд
+        if($id) {                     
+            $db->query("INSERT INTO advertStatus SET advert_id = $k, onSite_id = '$id', dt_stop = '"._ADVERT_STOP_DT_."' ");            
+        } 
+        
+    }
+    
+    curl_close($ch);
     
 }
 
 exit;
+
 ?>

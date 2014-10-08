@@ -1,6 +1,6 @@
 <?php
 
-function getAdverts($id) {
+function getAdverts($id, $yrl = null) {
     
     global $db;
     
@@ -28,7 +28,7 @@ function getAdverts($id) {
                     
                     $v2['svalue'] = $db->getValue("SELECT `value` FROM siteParamsValue WHERE siteParam_id = {$v2['sid']} AND tableValue_id = {$v1} ");   
                     
-                    if(!$v2['svalue']) {
+                    if(!$v2['svalue'] && $yrl) {
                         $v2['svalue'] = $db->getValue("SELECT `name` FROM ".array_shift(explode("_", $v2['ovar']))." WHERE id = {$v1}");
                     }
                     
@@ -44,9 +44,12 @@ function getAdverts($id) {
                         
                     } elseif(stripos($v2['svar'], "[") !== FALSE) { 
                         
-                        $arIndex = cut_str($v2['svar'], "[", "]");
+                        /*$arIndex = cut_str($v2['svar'], "[", "]");
                         $arName = str_replace("[$arIndex]", "", $v2['svar']);                        
                         $post[$arName][$arIndex] = $v2['svalue'];
+                         */
+                        
+                        $post[$v2['svar']] = $v2['svalue'];        
                         
                     } else {                        
                         $post[$v2['svar']] = $v2['svalue'];                        
@@ -62,13 +65,19 @@ function getAdverts($id) {
             $images = $db->super_query("SELECT image FROM advertImages WHERE advert_id = {$advert['id']} ", true);
             
             foreach($images AS $ik => $iv) {
-                $post['image'][$ik] = _SITE_URL_FULL_._IMAGES_URL_."/".$iv;
+                if($yrl) { 
+                    $post['image'][$ik] = _IMAGES_URL_."/".$iv;
+                } else {
+                    $post['image'][$ik] = "@"._ADVERT_IMAGES_DIR_."/".$iv;
+                }
             }
             
-            $post['dt_add'] = $advert['dt_add'];
-            $post['dt_update'] = $advert['dt_update'];
-            $post['dt_stop'] = $advert['dt_stop'];
-            $post['user_id'] = $advert['user_id'];
+            if($yrl) {
+                $post['dt_add'] = $advert['dt_add'];
+                $post['dt_update'] = $advert['dt_update'];
+                $post['dt_stop'] = $advert['dt_stop'];
+                $post['user_id'] = $advert['user_id'];
+            }
             
             $postData[$advert['id']] = $post;
         }
@@ -729,7 +738,7 @@ if ($otvet === FALSE) {
     echo "cURL Error: " . curl_error($ch);
     return false;
 }
-echo $otvet; exit;
+
 // если был редирект
 $location = checkRedirect($otvet); 
 

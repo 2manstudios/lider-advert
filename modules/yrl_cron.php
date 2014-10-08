@@ -1,7 +1,7 @@
 <?php
 
 $id = "13";
-$postData = getAdverts($id);
+$postData = getAdverts($id, true);
 
 if(!$postData) { echo 'empty!'; exit; }
 

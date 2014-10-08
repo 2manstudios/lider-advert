@@ -55,12 +55,13 @@ define('_TPL_URL_','/views/tpl',true);
 define('_NO_IMAGE_DIR_',ROOT_DIR.'/images/no_img.gif',true); 
 define('_NO_IMAGE_URL_','/images/no_img.gif',true); 
 
-define('_IMAGES_URL_','/images',true); 
+define('_IMAGES_URL_',_SITE_URL_FULL_.'/images',true); 
 define('_IMAGES_DIR_',ROOT_DIR.'/images',true); 
+define('_ADVERT_IMAGES_DIR_',ROOT_DIR.'/images/tmp',true); 
 
 define('_SITE_SLOGAN_','автоматическая подача объявлений',true); 
 define('_SITE_TITLE_','объявления.укр',true); 
-define('_SITE_MDESC_','Verify.It',true); 
-define('_SITE_MKEYS_','Verify.It',true);     
+define('_SITE_MDESC_','объявления',true); 
+define('_SITE_MKEYS_','объявления',true);     
 
 ?>
